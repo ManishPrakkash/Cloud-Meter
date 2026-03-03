@@ -1,0 +1,80 @@
+{
+  "name": "cloud-meter",
+  "version": "0.1.0-beta.1",
+  "description": "Production-grade backend pagination analyzer CLI.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "cloud-meter": "bin/cloud-meter.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/bin.ts analyze .",
+    "analyze": "tsx src/bin.ts analyze .",
+    "analyze:guided": "tsx src/bin.ts analyze",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "author": "Manish Prakkash",
+  "license": "ISC",
+  "dependencies": {
+    "@babel/parser": "^7.28.0",
+    "@babel/traverse": "^7.28.0",
+    "@inquirer/prompts": "^7.8.4",
+    "chalk": "^5.4.1",
+    "cli-progress": "^3.12.0",
+    "cli-table3": "^0.6.5",
+    "commander": "^14.0.1",
+    "consola": "^3.4.2",
+    "cosmiconfig": "^9.0.0",
+    "figlet": "^1.9.3",
+    "glob": "^11.0.3",
+    "gradient-string": "^3.0.0",
+    "ora": "^9.0.0",
+    "ts-morph": "^25.0.1"
+  },
+  "devDependencies": {
+    "@types/babel__traverse": "^7.28.0",
+    "@types/cli-progress": "^3.11.6",
+    "@types/node": "^22.13.10",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.8"
+  },
+  "directories": {
+    "test": "tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ManishPrakkash/Cloud-Meter.git"
+  },
+  "keywords": [
+    "cli",
+    "pagination",
+    "analyzer",
+    "backend",
+    "audit",
+    "efficiency",
+    "cloud"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "bugs": {
+    "url": "https://github.com/ManishPrakkash/Cloud-Meter/issues"
+  },
+  "homepage": "https://github.com/ManishPrakkash/Cloud-Meter#readme"
+}
