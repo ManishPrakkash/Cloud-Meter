@@ -310,4 +310,4 @@ Test fixtures are located in `fixtures/backend-risk` and `fixtures/backend-safe`
 
 ## License
 
-[ISC](./LICENSE) © Manish Prakkash
+[MIT](./LICENSE) © Manish Prakkash

@@ -29,7 +29,7 @@
     }
   },
   "author": "Manish Prakkash",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@babel/parser": "^7.28.0",
     "@babel/traverse": "^7.28.0",
