@@ -1,0 +1,12 @@
+{
+  "defaultPath": ".",
+  "outputMode": "pretty",
+  "maxAllowedSeverity": "high",
+  "enforceStrategy": "none",
+  "ignorePaths": [
+    "node_modules",
+    "dist",
+    ".git"
+  ],
+  "interactive": true
+}
