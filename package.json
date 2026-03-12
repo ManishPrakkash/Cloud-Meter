@@ -16,6 +16,10 @@
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "prepublishOnly": "npm run build",
+    "version": "node scripts/sync-version.mjs",
+    "release:patch": "npm version patch && npm publish",
+    "release:minor": "npm version minor && npm publish",
+    "release:major": "npm version major && npm publish",
     "postinstall": "node -e \"console.log(['','  \\u2601  Cloud Meter installed successfully!','','  Get started:','    $ cloud-meter                     # Welcome guide','    $ cloud-meter analyze ./backend    # Scan your backend','    $ cloud-meter recommend           # View fix recipes','    $ cloud-meter --help              # All commands',''].join('\\n'));\""
   },
   "files": [
