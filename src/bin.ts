@@ -14,7 +14,7 @@ const prefs = loadPreferences();
 program
   .name("cloud-meter")
   .description("Production-grade backend pagination efficiency analyzer")
-  .version("0.1.0-beta.1", "-v, --version", "Show version number");
+  .version("0.1.1", "-v, --version", "Show version number");
 
 program
   .command("init")
