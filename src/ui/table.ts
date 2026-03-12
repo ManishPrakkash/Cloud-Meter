@@ -64,7 +64,28 @@ function banner(): string {
   ].join("\n");
 }
 
-// ─── findings table ────────────────────────────────────────────────────────
+/**
+ * Truncate a string to `max` visible chars, appending "…" if trimmed.
+ */
+function truncate(s: string, max: number): string {
+  if (s.length <= max) return s;
+  return s.slice(0, max - 1) + "…";
+}
+
+/**
+ * Clean a code snippet for table display:
+ * - collapse whitespace
+ * - limit to 2 lines, each ≤50 chars
+ */
+function formatSnippet(raw: string): string {
+  const lines = raw
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0)
+    .slice(0, 2)
+    .map((l) => truncate(l, 50));
+  return lines.join("\n");
+}
 
 /**
  * Grouped, severity-sorted findings.
@@ -93,27 +114,28 @@ function findingsBlock(findings: Finding[]): string {
   const lines: string[] = [];
   const table = new Table({
     head: [chalk.bold("Severity"), chalk.bold("Issue"), chalk.bold("Location")],
-    colWidths: [14, 38, 30],
+    colWidths: [14, 40, 22],
     wordWrap: true,
+    wrapOnWordBoundary: true,
     style: { head: ["cyan"] }
   });
 
   for (const f of deduped) {
     const rel = path.relative(process.cwd(), f.filePath);
-    const loc = chalk.dim(`${rel}:${f.lineRange?.[0] ?? 1}`);
+    const lineNum = f.lineRange?.[0] ?? 1;
+    const loc = chalk.dim(truncate(rel, 18) + `:${lineNum}`);
 
-    let messageBody = chalk.white(f.message);
-    if (f.lineRange || f.codeSnippet) {
-      messageBody += "\n";
-      if (f.lineRange) {
-        messageBody += chalk.dim(`\nLines: ${f.lineRange[0]}-${f.lineRange[1]}`);
-      }
-      if (f.codeSnippet) {
-        messageBody += chalk.dim(`\n${f.codeSnippet}`);
-      }
+    // Build issue cell: message + optional line range (no raw code dump)
+    let issueText = chalk.white(f.message);
+    if (f.lineRange) {
+      issueText += chalk.dim(`\nL${f.lineRange[0]}–${f.lineRange[1]}`);
+    }
+    if (f.codeSnippet) {
+      const clean = formatSnippet(f.codeSnippet);
+      issueText += chalk.dim(`\n${clean}`);
     }
 
-    table.push([severityIcon(f.severity), messageBody, loc]);
+    table.push([severityIcon(f.severity), issueText, loc]);
   }
 
   lines.push(table.toString());
