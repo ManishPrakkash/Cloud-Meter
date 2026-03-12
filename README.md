@@ -23,11 +23,17 @@ Most backend performance issues in production come from **poorly implemented pag
 ## Quick Start
 
 ```bash
-# Install globally
+# Install globally (recommended)
 npm install -g cloud-meter
 
 # Run it — the CLI will guide you
 cloud-meter
+```
+
+Or use without installing:
+
+```bash
+npx cloud-meter analyze ./backend
 ```
 
 That's it. The CLI is fully self-guiding. Every command tells you what to run next.

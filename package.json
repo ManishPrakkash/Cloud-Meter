@@ -1,6 +1,6 @@
 {
   "name": "cloud-meter",
-  "version": "0.1.0-beta.1",
+  "version": "0.1.1",
   "description": "Production-grade backend pagination analyzer CLI.",
   "type": "module",
   "main": "dist/index.js",
