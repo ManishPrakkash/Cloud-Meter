@@ -93,6 +93,19 @@ Examples:
   );
 
 program
+  .command("estimate [path]")
+  .description("Run an interactive scale interview and estimate workloads")
+  .action(async (targetPath) => {
+    try {
+      const { runEstimateCommand } = await import("./commands/estimate.js");
+      await runEstimateCommand(targetPath || ".");
+    } catch (err) {
+      console.error(chalk.red("Fatal error during scale interview:"), err);
+      process.exit(1);
+    }
+  });
+
+program
   .command("config")
   .description("Print saved CLI defaults (from cloud-meter.config.json)")
   .addHelpText(

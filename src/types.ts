@@ -273,3 +273,11 @@ export interface TopologyResult {
   confidenceScore: number; // 0 to 100 based on how many signatures matched
 }
 
+export interface WorkloadModel {
+  topology: TopologyResult;
+  isTopologyOverridden: boolean;
+  monthlyActiveUsers: number;
+  trafficPattern: 'steady' | 'spikey';
+  deploymentRegion: string;
+}
+
