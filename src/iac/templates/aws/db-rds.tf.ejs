@@ -1,0 +1,23 @@
+resource "random_password" "db_password" {
+  length  = 16
+  special = false
+}
+
+resource "aws_db_subnet_group" "main" {
+  name       = "cloud-meter-db-subnet-group"
+  subnet_ids = [aws_subnet.private_1.id, aws_subnet.private_2.id]
+}
+
+resource "aws_db_instance" "main" {
+  identifier           = "cloud-meter-db"
+  engine               = "<%= db_engine %>"
+  instance_class       = "<%= db_instance_class %>"
+  allocated_storage    = 20
+  storage_encrypted    = true
+  username             = "admin"
+  password             = random_password.db_password.result
+  db_subnet_group_name = aws_db_subnet_group.main.name
+  vpc_security_group_ids = [aws_security_group.database.id]
+  skip_final_snapshot  = true
+  publicly_accessible  = false
+}
