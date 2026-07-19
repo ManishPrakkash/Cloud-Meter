@@ -3,6 +3,8 @@ import path from "node:path";
 import chalk from "chalk";
 import Table from "cli-table3";
 import { runScaleInterview } from "../core/interviewer.js";
+import { determineAWSTopology } from "../pricing/aws-sizer.js";
+import { calculateCost } from "../pricing/calculator.js";
 
 export async function runEstimateCommand(targetPath: string = ".") {
   const absolutePath = path.resolve(process.cwd(), targetPath);
@@ -13,27 +15,42 @@ export async function runEstimateCommand(targetPath: string = ".") {
   try {
     const workload = await runScaleInterview(absolutePath);
 
-    // Beautiful Table Output
-    console.log(chalk.green.bold("\n✓ Workload Profile Captured Successfully\n"));
+    // Run Sizing & Pricing
+    const resources = determineAWSTopology(workload);
+    const pricingResult = calculateCost(resources, workload.deploymentRegion);
+
+    console.log(chalk.green.bold("\n✓ Workload Profile & AWS Architecture Captured\n"));
+
+    if (pricingResult.isFallback) {
+      console.log(chalk.yellow(`⚠ Specific region pricing not cached for '${workload.deploymentRegion}'; falling back to us-east-1 baseline.\n`));
+    }
 
     const table = new Table({
-      head: [chalk.cyan("Property"), chalk.cyan("Value")],
-      colWidths: [30, 40],
+      head: [chalk.cyan("Component"), chalk.cyan("AWS SKU"), chalk.cyan("Est. Monthly Cost")],
+      colWidths: [15, 45, 20],
       style: { head: [], border: ["gray"] }
     });
 
-    table.push(
-      ["Framework", workload.topology.framework],
-      ["ORM", workload.topology.orm],
-      ["Database", workload.topology.database],
-      ["Topology Confirmed By User", workload.isTopologyOverridden ? chalk.yellow("No (Overridden)") : chalk.green("Yes")],
-      ["Monthly Active Users", workload.monthlyActiveUsers.toLocaleString()],
-      ["Traffic Pattern", workload.trafficPattern],
-      ["Deployment Region", workload.deploymentRegion]
-    );
+    for (let i = 0; i < resources.length; i++) {
+      const res = resources[i];
+      const costItem = pricingResult.items[i];
+      const typeLabel = res.type === 'compute' ? '[ Compute ]' : '[ Database ]';
+      table.push([
+        typeLabel, 
+        costItem.description, 
+        `$${costItem.monthlyCost.toFixed(2)} / mo`
+      ]);
+    }
+
+    // Add total row
+    table.push([
+      chalk.bold("TOTAL"), 
+      "", 
+      chalk.green.bold(`$${pricingResult.totalMonthlyCost.toFixed(2)} / mo`)
+    ]);
 
     console.log(table.toString());
-    console.log("");
+    console.log(chalk.gray("\n* Note: This is a static baseline estimate. Actual costs will vary based on exact data transfer, storage growth, and AWS pricing updates.\n"));
 
     // Cache the result
     const cacheDir = path.join(absolutePath, ".cloud-meter");
