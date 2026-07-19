@@ -234,13 +234,126 @@ function discoverNestGraphqlUnits(filePath: string, content: string): Discovered
   return units;
 }
 
+function discoverNextJsAppRouterUnits(filePath: string, content: string): DiscoveredUnit[] {
+  const units: DiscoveredUnit[] = [];
+  if (!filePath.match(/[\\/](app|src[\\/]app)[\\/].*route\.(ts|js)x?$/)) return units;
+  
+  const ast = parse(content, { sourceType: "unambiguous", plugins: ["typescript", "jsx"] });
+  traverse(ast, {
+    ExportNamedDeclaration(path: any) {
+      const node = path.node;
+      if (node.declaration?.type === "FunctionDeclaration") {
+        const name = node.declaration.id?.name;
+        if (name && HTTP_METHODS.has(name.toLowerCase())) {
+          const locStart = node.loc?.start.line ?? 1;
+          units.push({
+            id: `next-app:${name}:${filePath}:${locStart}`,
+            kind: "http",
+            name: `${name} (App Router)`,
+            filePath,
+            lineRange: [locStart, node.loc?.end.line ?? locStart],
+            entrySymbol: name,
+            meta: { framework: "nextjs-app", method: name }
+          });
+        }
+      } else if (node.declaration?.type === "VariableDeclaration") {
+        for (const dec of node.declaration.declarations) {
+          if (dec.id.type === "Identifier" && HTTP_METHODS.has(dec.id.name.toLowerCase())) {
+            const locStart = dec.loc?.start.line ?? 1;
+            units.push({
+              id: `next-app:${dec.id.name}:${filePath}:${locStart}`,
+              kind: "http",
+              name: `${dec.id.name} (App Router)`,
+              filePath,
+              lineRange: [locStart, dec.loc?.end.line ?? locStart],
+              entrySymbol: dec.id.name,
+              meta: { framework: "nextjs-app", method: dec.id.name }
+            });
+          }
+        }
+      }
+    }
+  });
+  return units;
+}
+
+function discoverReactServerActions(filePath: string, content: string): DiscoveredUnit[] {
+  const units: DiscoveredUnit[] = [];
+  if (!content.includes("use server")) return units;
+  
+  const ast = parse(content, { sourceType: "unambiguous", plugins: ["typescript", "jsx"] });
+  let isFileLevelUseServer = false;
+  
+  traverse(ast, {
+    Program(path: any) {
+      for (const directive of path.node.directives || []) {
+        if (directive.value?.value === "use server") isFileLevelUseServer = true;
+      }
+    },
+    ExportNamedDeclaration(path: any) {
+      const node = path.node;
+      if (node.declaration?.type === "FunctionDeclaration") {
+        const name = node.declaration.id?.name || "<anonymous>";
+        const isAsync = node.declaration.async;
+        
+        let hasActionDirective = false;
+        if (node.declaration.body?.type === "BlockStatement") {
+          for (const directive of node.declaration.body.directives || []) {
+            if (directive.value?.value === "use server") hasActionDirective = true;
+          }
+        }
+        
+        if (isAsync && (isFileLevelUseServer || hasActionDirective)) {
+          const locStart = node.loc?.start.line ?? 1;
+          units.push({
+            id: `server-action:${name}:${filePath}:${locStart}`,
+            kind: "http",
+            name: `${name} (Server Action)`,
+            filePath,
+            lineRange: [locStart, node.loc?.end.line ?? locStart],
+            entrySymbol: name,
+            meta: { framework: "react-server-action" }
+          });
+        }
+      }
+    }
+  });
+  return units;
+}
+
+function discoverNextJsPagesRouterUnits(filePath: string, content: string): DiscoveredUnit[] {
+  const units: DiscoveredUnit[] = [];
+  if (!filePath.match(/[\\/](pages|src[\\/]pages)[\\/]api[\\/]/)) return units;
+  
+  const ast = parse(content, { sourceType: "unambiguous", plugins: ["typescript", "jsx"] });
+  traverse(ast, {
+    ExportDefaultDeclaration(path: any) {
+      const node = path.node;
+      const locStart = node.loc?.start.line ?? 1;
+      units.push({
+        id: `next-pages:handler:${filePath}:${locStart}`,
+        kind: "http",
+        name: `API Handler (Pages Router)`,
+        filePath,
+        lineRange: [locStart, node.loc?.end.line ?? locStart],
+        entrySymbol: "default",
+        meta: { framework: "nextjs-pages" }
+      });
+    }
+  });
+  return units;
+}
+
 export function discoverUnitsInFile(filePath: string): DiscoveredUnit[] {
   const content = readFileSync(filePath, "utf8");
   return [
     ...discoverHttpUnits(filePath, content),
     ...discoverGraphqlObjectUnits(filePath, content),
     ...discoverNestHttpUnits(filePath, content),
-    ...discoverNestGraphqlUnits(filePath, content)
+    ...discoverNestGraphqlUnits(filePath, content),
+    ...discoverNextJsAppRouterUnits(filePath, content),
+    ...discoverReactServerActions(filePath, content),
+    ...discoverNextJsPagesRouterUnits(filePath, content)
   ];
 }
 

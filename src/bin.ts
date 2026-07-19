@@ -143,12 +143,19 @@ Examples:
 
 // Custom no-args handler: show a friendly welcome instead of raw help
 if (process.argv.length <= 2) {
+  const fs = await import("fs");
+  const path = await import("path");
+  const cachePath = path.resolve(process.cwd(), ".cloud-meter/cache.json");
+  const hasCache = fs.existsSync(cachePath);
+  const configPath = path.resolve(process.cwd(), "cloud-meter.config.json");
+  const hasConfig = fs.existsSync(configPath);
+
   // eslint-disable-next-line no-console
   console.log("");
   // eslint-disable-next-line no-console
   console.log(chalk.bold("☁  Welcome to Cloud-Meter!"));
   // eslint-disable-next-line no-console
-  console.log(chalk.dim("   Production-grade backend pagination efficiency analyzer"));
+  console.log(chalk.dim("   Production-grade universal frontend/backend pagination analyzer"));
   // eslint-disable-next-line no-console
   console.log("");
   // eslint-disable-next-line no-console
@@ -156,19 +163,23 @@ if (process.argv.length <= 2) {
   // eslint-disable-next-line no-console
   console.log(chalk.dim("─".repeat(52)));
   // eslint-disable-next-line no-console
-  console.log(`  ${chalk.cyan("1.")}  ${chalk.white("cloud-meter init")}               ${chalk.dim("— Set up project config (optional)")}`);
+  console.log(`  ${chalk.cyan("1.")}  ${chalk.white("cloud-meter init")}               ${chalk.dim("— Set up project config")} ${hasConfig ? chalk.green("✔") : ""}`);
   // eslint-disable-next-line no-console
-  console.log(`  ${chalk.cyan("2.")}  ${chalk.white("cloud-meter analyze <path>")}     ${chalk.dim("— Scan your backend for pagination issues")}`);
+  console.log(`  ${chalk.cyan("2.")}  ${chalk.white("cloud-meter analyze <path>")}     ${chalk.dim("— Scan codebase for pagination issues")}`);
   // eslint-disable-next-line no-console
-  console.log(`  ${chalk.cyan("3.")}  ${chalk.white("cloud-meter recommend")}          ${chalk.dim("— View fix suggestions from analysis")}`);
+  console.log(`  ${chalk.cyan("3.")}  ${chalk.white("cloud-meter recommend")}          ${chalk.dim("— View fix suggestions")} ${hasCache ? chalk.green("✔ (Ready)") : chalk.dim("(Run analyze first)")}`);
   // eslint-disable-next-line no-console
-  console.log(`  ${chalk.cyan("4.")}  ${chalk.white("cloud-meter doctor")}             ${chalk.dim("— Diagnose your setup")}`);
+  console.log(`  ${chalk.cyan("4.")}  ${chalk.white("cloud-meter doctor")}             ${chalk.dim("— Diagnose your local setup & framework")}`);
   // eslint-disable-next-line no-console
   console.log("");
-  // eslint-disable-next-line no-console
-  console.log(chalk.dim("  Run any command with --help for detailed options."));
-  // eslint-disable-next-line no-console
-  console.log(`  ${chalk.dim("Example:")} ${chalk.white("cloud-meter analyze --help")}`);
+  
+  if (hasCache) {
+    // eslint-disable-next-line no-console
+    console.log(`  ${chalk.green("Tip:")} You have an analysis ready! Run ${chalk.white("cloud-meter recommend")} to see fixes.`);
+  } else {
+    // eslint-disable-next-line no-console
+    console.log(`  ${chalk.cyan("Tip:")} Start by running ${chalk.white("cloud-meter analyze .")}`);
+  }
   // eslint-disable-next-line no-console
   console.log("");
   process.exit(0);

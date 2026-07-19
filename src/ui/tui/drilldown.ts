@@ -27,7 +27,7 @@ function unitLabel(u: AnalysisUnit): string {
     score >= 60 ? chalk.yellow(`${score}`) :
     score >= 40 ? chalk.hex("#ff9f1a")(`${score}`) :
     chalk.red(`${score}`);
-  return `${u.name}  ${chalk.dim("|")} score ${scoreText}/100  ${chalk.dim("|")} issues ${issues}`;
+  return `${u.name}  ${chalk.dim("|")} Health Score: ${scoreText}/100  ${chalk.dim("|")} Issues: ${issues}`;
 }
 
 function unique<T>(xs: T[]): T[] {
@@ -120,10 +120,10 @@ export async function runDrilldownTui(result: AnalysisResult): Promise<void> {
 
   while (true) {
     const view = await select<"critical" | "all" | "exit">({
-      message: "Explore analysis",
+      message: "What would you like to explore?",
       choices: [
-        { name: "Critical units (start here)", value: "critical" },
-        { name: "All units", value: "all" },
+        { name: "Critical issues (Recommended)", value: "critical" },
+        { name: "All files & endpoints", value: "all" },
         { name: "Exit", value: "exit" }
       ],
       default: "critical"
@@ -142,24 +142,24 @@ export async function runDrilldownTui(result: AnalysisResult): Promise<void> {
     }
 
     const sort = await select<"score" | "bounds" | "depth">({
-      message: "Sort units by",
+      message: "Sort findings by",
       choices: [
-        { name: "Overall score (low first)", value: "score" },
-        { name: "Bounds score (low first)", value: "bounds" },
-        { name: "DepthCost score (low first)", value: "depth" }
+        { name: "Overall risk score (Worst first) (Recommended)", value: "score" },
+        { name: "Missing Limits (Unbounded risk first)", value: "bounds" },
+        { name: "Deep Offsets (Performance risk first)", value: "depth" }
       ],
       default: "score"
     });
 
     const filter = await select<"all" | "critical" | "high" | "unbounded" | "deepOffset" | "unsafeSort">({
-      message: "Filter units",
+      message: "Filter findings",
       choices: [
-        { name: "All units", value: "all" },
-        { name: "Critical only", value: "critical" },
-        { name: "Critical + High", value: "high" },
-        { name: "Unbounded only", value: "unbounded" },
-        { name: "Deep offset only", value: "deepOffset" },
-        { name: "Unsafe sort only", value: "unsafeSort" }
+        { name: "Show all", value: "all" },
+        { name: "Critical severity only", value: "critical" },
+        { name: "Critical + High severity (Recommended)", value: "high" },
+        { name: "Missing limits only", value: "unbounded" },
+        { name: "Deep offsets only", value: "deepOffset" },
+        { name: "Unsafe sorting only", value: "unsafeSort" }
       ],
       default: "high"
     });
@@ -202,7 +202,7 @@ export async function runDrilldownTui(result: AnalysisResult): Promise<void> {
     const list = filtered.length > 0 ? filtered : sortedBase;
 
     const selectedId = await select<string>({
-      message: `Select a unit (${list.length})`,
+      message: `Select a file or endpoint to view details (${list.length} found)`,
       pageSize: 12,
       choices: list.slice(0, 200).map((u) => ({ name: unitLabel(u), value: u.id }))
     });

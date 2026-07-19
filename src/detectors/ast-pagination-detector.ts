@@ -32,16 +32,35 @@ function createFinding(input: Omit<Finding, "severity"> & { severity?: Finding["
 }
 
 function isReqQueryLimit(node: Node): boolean {
-  if (node.type !== "MemberExpression") return false;
-  const n = node as MemberExpression;
-  if (n.object.type !== "MemberExpression") return false;
-  const left = n.object;
-  if (left.object.type !== "Identifier" || left.object.name !== "req") return false;
-  const prop = left.property;
-  const rightProp = n.property;
-  const q = prop.type === "Identifier" ? prop.name : prop.type === "StringLiteral" ? prop.value : "";
-  const l = rightProp.type === "Identifier" ? rightProp.name : rightProp.type === "StringLiteral" ? rightProp.value : "";
-  return q === "query" && ["limit", "pageSize", "first", "take"].includes(l);
+  // Check req.query.limit
+  if (node.type === "MemberExpression") {
+    const n = node as MemberExpression;
+    if (n.object.type === "MemberExpression") {
+      const left = n.object;
+      if (left.object.type === "Identifier" && left.object.name === "req") {
+        const prop = left.property;
+        const rightProp = n.property;
+        const q = prop.type === "Identifier" ? prop.name : prop.type === "StringLiteral" ? prop.value : "";
+        const l = rightProp.type === "Identifier" ? rightProp.name : rightProp.type === "StringLiteral" ? rightProp.value : "";
+        if (q === "query" && ["limit", "pageSize", "first", "take"].includes(l)) return true;
+      }
+    }
+  }
+
+  // Check searchParams.get("limit")
+  if (node.type === "CallExpression") {
+    const call = node as CallExpression;
+    if (call.callee.type === "MemberExpression") {
+      const prop = call.callee.property;
+      const propName = prop.type === "Identifier" ? prop.name : prop.type === "StringLiteral" ? prop.value : "";
+      if (propName === "get" && call.arguments.length > 0) {
+        const arg = call.arguments[0];
+        if (arg.type === "StringLiteral" && ["limit", "pageSize", "first", "take"].includes(arg.value)) return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 function getObjectProperty(obj: ObjectExpression, name: string): ObjectProperty | undefined {
@@ -266,6 +285,53 @@ export function detectAstPagination(filePath: string): Finding[] {
         }
       }
 
+      // Check for frontend unbounded data fetching (fetch or axios.get)
+      if (node.callee.type === "Identifier" && node.callee.name === "fetch") {
+        const firstArg = node.arguments[0];
+        if (firstArg && (firstArg.type === "StringLiteral" || firstArg.type === "TemplateLiteral")) {
+          const raw = content.slice(firstArg.start ?? 0, firstArg.end ?? 0);
+          if (raw.includes("/api/") || raw.includes("/graphql")) {
+            if (!raw.includes("limit=") && !raw.includes("take=") && !raw.includes("cursor=") && !raw.includes("page=")) {
+               findings.push(
+                createFinding({
+                  code: "UNBOUNDED_FRONTEND_FETCH",
+                  message: "Frontend API call detected without pagination query parameters.",
+                  filePath,
+                  lineRange: [node.loc?.start.line ?? 1, node.loc?.end.line ?? 1],
+                  codeSnippet: content.slice(node.start, node.end),
+                  severity: "medium",
+                  recommendation: "Always request a bounded dataset (e.g. ?limit=50) to prevent UI freezing on large datasets."
+                })
+              );
+            }
+          }
+        }
+      }
+
+      // Detect Drizzle ORM / Kysely chained query builders
+      if (node.callee.type === "MemberExpression") {
+        const chain = getCallChain(node);
+        if (chain.includes("select") || chain.includes("from")) {
+          const hasLimit = chain.includes("limit") || chain.includes("take");
+          const hasOffset = chain.includes("offset");
+          
+          if (hasOffset && !hasLimit) {
+             findings.push(
+                createFinding({
+                  code: "MISSING_LIMIT",
+                  severity: "critical",
+                  message: "Offset used without limit in query builder chain.",
+                  filePath,
+                  lineRange: [node.loc?.start.line ?? 1, node.loc?.end.line ?? 1],
+                  codeSnippet: content.slice(node.start, node.end),
+                  strategy: "offset",
+                  recommendation: "Always pair .offset() with .limit() in Drizzle/Kysely."
+                })
+              );
+          }
+        }
+      }
+
       // Dynamic sort risk
       if (node.callee.type === "MemberExpression") {
         const property = node.callee.property;
@@ -316,7 +382,7 @@ export function detectAstPagination(filePath: string): Finding[] {
   });
 
   if (!hasCap.value) {
-    const limitFromQueryRegex = /req\.query\.(limit|pageSize|first|take)/;
+    const limitFromQueryRegex = /(req\.query\.(limit|pageSize|first|take)|searchParams\.get\(['"](limit|pageSize|first|take)['"]\))/;
     if (limitFromQueryRegex.test(content)) {
       findings.push(
         createFinding({
