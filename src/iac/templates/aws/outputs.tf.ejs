@@ -1,0 +1,19 @@
+<% if (locals.app_port) { %>
+output "alb_dns_name" {
+  description = "The DNS name of the Application Load Balancer"
+  value       = aws_lb.main.dns_name
+}
+<% } %>
+
+<% if (locals.db_port) { %>
+output "database_address" {
+  description = "The connection endpoint for the database"
+  value       = aws_db_instance.main.address
+}
+
+output "database_password" {
+  description = "The randomly generated database password"
+  value       = random_password.db_password.result
+  sensitive   = true
+}
+<% } %>

@@ -106,6 +106,19 @@ program
   });
 
 program
+  .command("generate [path]")
+  .description("Generate deterministic Terraform IaC from the workload model")
+  .action(async (targetPath) => {
+    try {
+      const { runGenerateCommand } = await import("./commands/generate.js");
+      await runGenerateCommand(targetPath || ".");
+    } catch (err) {
+      console.error(chalk.red("Fatal error during IaC generation:"), err);
+      process.exit(1);
+    }
+  });
+
+program
   .command("config")
   .description("Print saved CLI defaults (from cloud-meter.config.json)")
   .addHelpText(
