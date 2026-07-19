@@ -26,7 +26,8 @@ export const RULES: Record<IssueCode, RuleInfo> = {
   CONCURRENT_WRITES_RISK: { code: "CONCURRENT_WRITES_RISK", category: "Consistency", points: 12 },
   INCONSISTENT_PAGE_SIZE_CONTROL: { code: "INCONSISTENT_PAGE_SIZE_CONTROL", category: "Consistency", points: 8 },
 
-  DYNAMIC_SORT_UNSAFE: { code: "DYNAMIC_SORT_UNSAFE", category: "InputSafety", points: 8 }
+  DYNAMIC_SORT_UNSAFE: { code: "DYNAMIC_SORT_UNSAFE", category: "InputSafety", points: 8 },
+  UNBOUNDED_FRONTEND_FETCH: { code: "UNBOUNDED_FRONTEND_FETCH", category: "Bounds", points: -15 }
 };
 
 export function categoryFor(code: IssueCode): ScoreCategory | undefined {

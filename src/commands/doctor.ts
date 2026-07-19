@@ -1,6 +1,7 @@
 import os from "node:os";
 import path from "node:path";
 import { existsSync, accessSync, constants } from "node:fs";
+import fs from "node:fs";
 import Table from "cli-table3";
 import chalk from "chalk";
 import { loadPreferences } from "../config/index.js";
@@ -109,12 +110,93 @@ function checkRuntimeInfo(): CheckResult {
   };
 }
 
+function checkFramework(cwd: string): CheckResult {
+  const pkgPath = path.join(cwd, "package.json");
+  if (!existsSync(pkgPath)) {
+    return { name: "Project Framework", status: "WARN", detail: "Unknown (no package.json)", fix: "Run in project root." };
+  }
+  try {
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
+    const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
+    const frameworks = [];
+    if (deps["next"]) frameworks.push("Next.js");
+    if (deps["express"]) frameworks.push("Express");
+    if (deps["@nestjs/core"]) frameworks.push("NestJS");
+    if (deps["react"] && !deps["next"]) frameworks.push("React (SPA)");
+    if (deps["vue"]) frameworks.push("Vue");
+    if (deps["nuxt"]) frameworks.push("Nuxt");
+
+    if (frameworks.length > 0) {
+      return { name: "Project Framework", status: "PASS", detail: frameworks.join(", ") };
+    }
+    return { name: "Project Framework", status: "PASS", detail: "Generic Node/JS" };
+  } catch {
+    return { name: "Project Framework", status: "FAIL", detail: "Invalid package.json", fix: "Fix package.json JSON syntax." };
+  }
+}
+
+function checkMonorepo(cwd: string): CheckResult {
+  const pkgPath = path.join(cwd, "package.json");
+  const hasLerna = existsSync(path.join(cwd, "lerna.json"));
+  const hasTurbo = existsSync(path.join(cwd, "turbo.json"));
+  const hasNx = existsSync(path.join(cwd, "nx.json"));
+  
+  let isWorkspaces = false;
+  if (existsSync(pkgPath)) {
+    try {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
+      if (pkg.workspaces) isWorkspaces = true;
+    } catch {}
+  }
+
+  const types = [];
+  if (hasLerna) types.push("Lerna");
+  if (hasTurbo) types.push("Turborepo");
+  if (hasNx) types.push("Nx");
+  if (isWorkspaces) types.push("Yarn/npm Workspaces");
+
+  if (types.length > 0) {
+    return { 
+      name: "Monorepo Setup", 
+      status: "WARN", 
+      detail: `Detected: ${types.join(", ")}`, 
+      fix: "Ensure you are targeting the specific app/package directory, not the monorepo root." 
+    };
+  }
+  return { name: "Monorepo Setup", status: "PASS", detail: "Single Project" };
+}
+
+function checkTsConfigPaths(cwd: string): CheckResult {
+  const tsPath = path.join(cwd, "tsconfig.json");
+  if (!existsSync(tsPath)) {
+    return { name: "TS Config", status: "PASS", detail: "No tsconfig.json" };
+  }
+  try {
+    const ts = JSON.parse(fs.readFileSync(tsPath, "utf-8"));
+    if (ts.compilerOptions && ts.compilerOptions.paths) {
+      return { 
+        name: "TS Config", 
+        status: "WARN", 
+        detail: "Custom path aliases detected", 
+        fix: "Cross-file static analysis might be limited by custom @/ aliases." 
+      };
+    }
+    return { name: "TS Config", status: "PASS", detail: "Standard paths" };
+  } catch {
+    // tsconfig often has comments, standard JSON parse might fail. We just warn if we can't parse easily.
+    return { name: "TS Config", status: "PASS", detail: "Unparsed tsconfig" };
+  }
+}
+
 export async function runDoctorCommand(targetPath = "."): Promise<void> {
   const cwd = process.cwd();
   const checks: CheckResult[] = [
     checkNodeVersion(),
     checkRuntimeInfo(),
     checkWorkspacePackageJson(cwd),
+    checkFramework(cwd),
+    checkMonorepo(cwd),
+    checkTsConfigPaths(cwd),
     checkPathReadable(targetPath),
     checkDistBuild(cwd),
     checkSavedDefaults()

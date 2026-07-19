@@ -39,8 +39,23 @@ export const runRecommendCommand = async () => {
     console.log("");
     recommendations.forEach((rec: string, index: number) => {
       console.log(`  ${chalk.cyan.bold(`${String(index + 1).padStart(2)}.`)}  ${rec}`);
+      
+      // Inject context-aware AST code diffs based on the recommendation text
+      if (rec.includes("Drizzle/Kysely")) {
+        console.log(chalk.dim(`      - db.select().from(users).offset(10)`));
+        console.log(chalk.green(`      + db.select().from(users).limit(50).offset(10)`));
+      } else if (rec.includes("bounded dataset (e.g. ?limit=50)")) {
+        console.log(chalk.dim(`      - fetch('/api/users')`));
+        console.log(chalk.green(`      + fetch('/api/users?limit=50')`));
+      } else if (rec.includes("cursor on (createdAt, id/_id)")) {
+        console.log(chalk.dim(`      - cursor: { createdAt: lastDate }`));
+        console.log(chalk.green(`      + cursor: { createdAt_id: { createdAt: lastDate, id: lastId } }`));
+      } else if (rec.includes("Math.min")) {
+        console.log(chalk.dim(`      - const limit = req.query.limit;`));
+        console.log(chalk.green(`      + const limit = Math.min(Number(req.query.limit || 10), 50);`));
+      }
+      console.log("");
     });
-    console.log("");
     console.log(chalk.dim("─".repeat(52)));
     console.log(chalk.dim("  These recommendations are based on your last analysis run."));
     console.log(`  ${chalk.dim("Re-analyze:")} ${chalk.white("cloud-meter analyze <path>")}`);

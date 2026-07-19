@@ -42,7 +42,8 @@ export type IssueCode =
   | "INCONSISTENT_PAGE_SIZE_CONTROL"
   | "INFINITE_SCROLL_UNSAFE"
   | "POTENTIAL_FULL_COLLECTION_SCAN"
-  | "DYNAMIC_SORT_UNSAFE";
+  | "DYNAMIC_SORT_UNSAFE"
+  | "UNBOUNDED_FRONTEND_FETCH";
 
 export type ScoreCategory =
   | "Bounds"
@@ -263,5 +264,12 @@ export interface UserPreferences {
   maxAllowedSeverity: Severity;
   enforceStrategy?: PaginationStrategy;
   ignorePaths: string[];
+}
+
+export interface TopologyResult {
+  framework: 'express' | 'nextjs' | 'nestjs' | 'unknown';
+  orm: 'prisma' | 'drizzle' | 'kysely' | 'none';
+  database: 'postgres' | 'mysql' | 'mongodb' | 'unknown';
+  confidenceScore: number; // 0 to 100 based on how many signatures matched
 }
 
